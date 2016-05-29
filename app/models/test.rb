@@ -4,13 +4,6 @@ class Test < ActiveRecord::Base
   after_save :test_after_save
   after_commit :test_after_commit
 
-  def change(n)
-    Rails.logger.debug "** changing: #{number} -> #{n} **"
-    self.number = n
-    self.title = n
-    self.save!
-  end
-
   # saved number should change
   def self.test
     # create with value of 1
@@ -20,15 +13,12 @@ class Test < ActiveRecord::Base
     # run a transaction
     test.transaction do
       test.log_history
-      test.change 2
+      test.update number: 2
       test.log_history
-      test.change 3
-      test.log_history
-      test.change 1
+      test.update title: "2"
       test.log_history
     end
-    # return final status
-    Rails.logger.debug "** final: #{test.saved_changes.inspect} **"
+    nil
   end
 
   def log_history
@@ -39,7 +29,8 @@ class Test < ActiveRecord::Base
 
   def log_status(callee)
     Rails.logger.debug "** #{callee.upcase} **"
-    Rails.logger.debug "** number changed? #{saved_changes.key?("number")} **"
+    Rails.logger.debug "** previous_changes? #{previous_changes.inspect} **"
+    Rails.logger.debug "** saved_changes? #{saved_changes.inspect} **"
   end
 
   def test_after_save
