@@ -111,6 +111,9 @@ RSpec.describe Test, type: :model do
         it_behaves_like :no_changes
         it_behaves_like :previous_changes
         it_behaves_like :no_saved_changes
+        it 'filters changes that remain the same' do
+          expect(test.saved_changes_unfiltered["number"]).to eq [1,1]
+        end
       end
     end
 
@@ -126,35 +129,38 @@ RSpec.describe Test, type: :model do
       it_behaves_like :no_saved_changes
     end
 
-    context 'in a rolled back transaction it looks like success' do
-      before do
-        begin
-          test.transaction do
-            test.update params_two
-            raise StandardError
-          end
-        rescue StandardError
-        end
-      end
-      it_behaves_like :no_changes
-      it_behaves_like :previous_changes
-      it_behaves_like :saved_changes
-    end
+    context 'in a rolled back transaction' do
 
-    context 'unless you have full control' do
-      before do
-        begin
-          test.transaction do
-            test.update params_two
-            raise StandardError
+      context 'it looks like success' do
+        before do
+          begin
+            test.transaction do
+              test.update params_two
+              raise StandardError
+            end
+          rescue StandardError
           end
-        rescue StandardError
-          test.reset_saved_changes
         end
+        it_behaves_like :no_changes
+        it_behaves_like :previous_changes
+        it_behaves_like :saved_changes
       end
-      it_behaves_like :no_changes
-      it_behaves_like :previous_changes
-      it_behaves_like :no_saved_changes
+
+      context 'unless you reset the saved changes' do
+        before do
+          begin
+            test.transaction do
+              test.update params_two
+              raise StandardError
+            end
+          rescue StandardError
+            test.reset_saved_changes
+          end
+        end
+        it_behaves_like :no_changes
+        it_behaves_like :previous_changes
+        it_behaves_like :no_saved_changes
+      end
     end
   end
 end
